@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediAssist AI | Standalone Assistant</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f9fafb;
+            --sidebar-bg: #202123;
+            --text-main: #374151;
+            --text-muted: #6b7280;
+            --accent-color: #10a37f;
+            --border-color: #e5e7eb;
+            --bot-msg-bg: #f7f7f8;
+            --user-msg-bg: #ffffff;
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark-mode {
+            --bg-primary: #343541;
+            --bg-secondary: #202123;
+            --text-main: #ececf1;
+            --text-muted: #c5c5d2;
+            --border-color: #4d4d4f;
+            --bot-msg-bg: #444654;
+            --user-msg-bg: #343541;
+            --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            --glass-bg: rgba(52, 53, 65, 0.8);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            overflow: hidden;
+            transition: background-color 0.3s ease;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .sidebar {
+            width: 260px;
+            background-color: var(--sidebar-bg);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .logo i { color: var(--accent-color); font-size: 1.4rem; }
+
+        .new-chat-btn {
+            background: transparent;
+            border: 1px solid #4d4d4f;
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: left;
+            cursor: pointer;
+            margin: 10px 0;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .new-chat-btn:hover { background: #2b2c2f; }
+
+        .history-label {
+            font-size: 0.75rem;
+            color: #8e8ea0;
+            padding: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .sidebar-content { flex-grow: 1; overflow-y: auto; }
+
+        .history-list div {
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 2px;
+        }
+
+        .history-list div:hover { background: #2b2c2f; }
+
+        .sidebar-footer {
+            border-top: 1px solid #4d4d4f;
+            padding-top: 10px;
+        }
+
+        .footer-btn {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-radius: 6px;
+        }
+
+        .footer-btn:hover { background: #2b2c2f; }
+
+        .chat-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-primary);
+            position: relative;
+        }
+
+        .chat-header {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+            background: var(--glass-bg);
+            position: sticky;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+            top: 0;
+            z-index: 10;
+        }
+
+        .sidebar-toggle {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+
+        .header-title { font-weight: 600; color: var(--text-main); }
+
+        .status-indicator {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .pulse {
+            width: 8px;
+            height: 8px;
+            background: #10a37f;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 0 rgba(16, 163, 127, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 163, 127, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 163, 127, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 163, 127, 0); }
+        }
+
+        .chat-window {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        .disclaimer {
+            max-width: 800px;
+            margin: 0 auto 20px;
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            text-align: center;
+            border: 1px solid #ffeeba;
+        }
+
+        .message {
+            padding: 25px 20px;
+            display: flex;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+
+        .bot-message { background-color: var(--bot-msg-bg); }
+        .user-message { background-color: var(--user-msg-bg); border-bottom: 1px solid var(--border-color); }
+
+        .message .avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+
+        .bot-message .avatar { background: var(--accent-color); color: white; }
+        .user-message .avatar { background: #5436da; color: white; }
+
+        .message .content {
+            max-width: 800px;
+            width: 100%;
+            line-height: 1.7;
+            font-size: 1.05rem;
+            white-space: pre-wrap;
+            color: var(--text-main);
+        }
+
+        .message .timestamp {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .emergency-alert {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            padding: 15px;
+            border-radius: 8px;
+            color: #b91c1c;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .input-area {
+            padding: 20px;
+            background: linear-gradient(transparent, var(--bg-primary) 20%);
+        }
+
+        .suggestions-container {
+            max-width: 800px;
+            margin: 0 auto 15px;
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+            scrollbar-width: none;
+        }
+
+        .suggestions-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .chip {
+            padding: 8px 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+        }
+
+        .chip:hover { background: var(--bot-msg-bg); border-color: var(--accent-color); transform: translateY(-1px); }
+
+        .input-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            display: flex;
+            padding: 5px;
+        }
+
+        .input-wrapper input {
+            flex-grow: 1;
+            border: none;
+            padding: 12px 15px;
+            background: transparent;
+            color: var(--text-main);
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .input-wrapper button {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .footer-note { text-align: center; font-size: 0.75rem; color: var(--text-muted); margin-top: 10px; }
+
+        .hidden { display: none; }
+
+        .typing span {
+            height: 8px;
+            width: 8px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 2px;
+            animation: bounce 1.3s infinite;
+        }
+        .typing span:nth-child(2) { animation-delay: 0.15s; }
+        .typing span:nth-child(3) { animation-delay: 0.3s; }
+
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-4px); }
+        }
+    </style>
+</head>
+<body class="light-mode">
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo"><i class="fas fa-hand-holding-medical"></i><span>MediAssist AI</span></div>
+                <button id="close-sidebar" style="background:none; border:none; color:white; font-size:1.2rem;" class="mobile-only"><i class="fas fa-times"></i></button>
+            </div>
+            <button class="new-chat-btn" onclick="clearChat()"><i class="fas fa-plus"></i> New Chat</button>
+            <div class="sidebar-content">
+                <div class="history-label">Recent History</div>
+                <div id="chat-history-list" class="history-list"></div>
+            </div>
+            <div class="sidebar-footer">
+                <button onclick="toggleTheme()" class="footer-btn"><i class="fas fa-moon" id="theme-icon"></i> <span id="theme-text">Dark Mode</span></button>
+                <button class="footer-btn" onclick="alert('MediAssist AI v1.0 Standalone')"><i class="fas fa-circle-info"></i> About</button>
+            </div>
+        </aside>
+        <main class="chat-area">
+            <header class="chat-header">
+                <button id="open-sidebar" class="sidebar-toggle"><i class="fas fa-bars"></i></button>
+                <div class="header-title">MediAssist AI</div>
+                <div class="status-indicator"><span class="pulse"></span> Online</div>
+            </header>
+            <div id="chat-window" class="chat-window">
+                <div id="messages-container">
+                    <div class="message bot-message">
+                        <div class="avatar"><i class="fas fa-robot"></i></div>
+                        <div class="content">Hello! I'm your standalone MediAssist AI. How can I help?</div>
+                    </div>
+                </div>
+                <div id="typing-indicator" class="message bot-message hidden">
+                    <div class="avatar"><i class="fas fa-robot"></i></div>
+                    <div class="content typing"><span></span><span></span><span></span></div>
+                </div>
+            </div>
+            <footer class="input-area">
+                <div class="suggestions-container" id="suggestions">
+                    <!-- Dynamically populated -->
+                </div>
+                <form id="chat-form" class="input-wrapper">
+                    <input type="text" id="user-input" placeholder="Ask about symptoms, nutrition, or first aid..." autocomplete="off">
+                    <button type="submit"><i class="fas fa-paper-plane"></i></button>
+                </form>
+            </footer>
+        </main>
+    </div>
+
+    <script>
+        const MEDICAL_DATA = {
+            // Symptoms
+            "fever": "**Detailed Overview:** A fever (pyrexia) is a clinical sign of an underlying process, most commonly an infection. It is the body's natural immunological response to pathogens.\n\n**Management Protocol:**\n1. **Hydration:** Consume at least 2-3 liters of fluids daily to prevent dehydration.\n2. **Environment:** Maintain a cool room temperature and wear light clothing.\n\n**Clinical Red Flags:** Seek immediate medical evaluation if temperature persists above 103°F, or if you experience confusion or a stiff neck.",
+            "cough": "**Detailed Overview:** A cough is a protective reflex. It can be categorized as 'acute' (under 3 weeks) or 'chronic' (over 8 weeks).\n\n**Therapeutic Steps:**\n- **Humidification:** Use a cool-mist humidifier to soothe irritated lung tissue.\n- **Fluid Intake:** Warm liquids help break up mucus in the respiratory tract.\n\n**Clinical Warning Signs:** Contact a healthcare provider immediately if you experience coughing up blood or persistent wheezing.",
+            "cold": "**Detailed Overview:** The common cold is a viral upper respiratory tract infection. Over 200 viruses can cause a cold, with rhinoviruses being the most common.\n\n**Comprehensive Care Plan:**\n- **Rest:** Allow the immune system to prioritize fighting the virus.\n- **Symptom Management:** Use saline nasal drops for congestion.\n\n**When to see a doctor:** If symptoms do not improve after 10 days.",
+            "headache": "**Detailed Overview:** Headaches range from tension-type to migraines. Primary headaches are not caused by underlying diseases.\n\n**Structured Management:**\n- **Environmental Control:** Dim lights and reduce noise levels during an attack.\n- **Hydration:** Dehydration is a leading cause of tension headaches.\n\n**Critical Alert:** Seek emergency care for 'worst headache of life' or vision changes.",
+            "nausea": "**Detailed Overview:** Nausea is the subjective feeling of a need to vomit. It is a symptom of many conditions.\n\n**Recovery Steps:**\n- **Dietary Control:** Stick to the BRAT diet (Bananas, Rice, Applesauce, Toast).\n- **Ginger/Peppermint:** Natural remedies clinically shown to settle stomach lining.",
+            "vomiting": "Vomiting causes rapid dehydration. Sip electrolyte solutions frequently. Seek emergency care if you cannot keep fluids down for 24 hours.",
+            "fatigue": "Persistent fatigue can result from stress, anemia, or thyroid issues. Focus on sleep hygiene. If it persists for weeks, consult a doctor for bloodwork.",
+            "dizziness": "Dizziness requires sitting or lying down immediately. Hydrate well. Seek emergency care if accompanied by sudden numbness or speech changes.",
+            "weakness": "Generalized weakness may indicate viral illness or low blood sugar. If localized to one side of the body, seek emergency care immediately as it may be a stroke.",
+            "chills": "Chills often accompany fever. Dress in light layers and monitor your temperature.",
+            "sore throat": "Gargle with warm salt water and rest your voice. See a doctor if you have difficulty swallowing or a persistent high fever.",
+            "diarrhea": "Focus on rehydration with water or broths. Eat bland foods. See a physician if it lasts more than 2 days or shows blood.",
+            "constipation": "Increase dietary fiber and water intake. If chronic or accompanied by severe pain, consult a professional.",
+            "stomach pain": "Can stem from indigestion or viruses. Seek urgent care for severe, sudden localized pain, especially in the lower right abdomen.",
+            "chest pain": "**Detailed Overview:** Chest pain can be a symptom of anything from indigestion to a heart attack.\n\n**Immediate Action:** If the pain is severe, crushing, or radiating to the left arm or jaw, call **108** immediately.\n\n**Management:** Rest and avoid exertion until evaluated by a professional.",
+            "shortness of breath": "Difficulty breathing can indicate serious cardiac or respiratory conditions. Seek emergency medical services immediately.",
+            "back pain": "Often muscular. apply ice for 48 hours, then switch to heat. See a doctor if pain radiates down your leg or causes numbness.",
+            "ear pain": "Can be caused by infections or pressure. Apply a warm compress. See a doctor if there is drainage or hearing loss.",
+            "eye pain": "Requires professional evaluation if severe or accompanied by vision loss. Avoid rubbing the eyes.",
+            "joint pain": "Protect and rest the joint. Apply ice compresses. Persistent swelling requires medical evaluation.",
+
+            // Diseases
+            "diabetes": "A chronic condition affecting blood sugar regulation. Requires consistent monitoring, a balanced diet, and strict adherence to medication.",
+            "hypertension": "High blood pressure often has no symptoms. Manage it by reducing sodium intake and exercising regularly.",
+            "asthma": "Requires adherence to a management plan. Use rescue inhalers for wheezing. Seek emergency care if symptoms do not improve rapidly.",
+            "tuberculosis": "A bacterial infection primarily affecting lungs. Requires a long course of antibiotics prescribed by a specialist.",
+            "dengue": "A viral infection spread by mosquitoes. Focus on hydration and pain management. Avoid ibuprofen/aspirin; use paracetamol.",
+            "malaria": "Requires immediate medical diagnosis and specific anti-malarial medication.",
+            "typhoid": "A bacterial fever. Requires antibiotics and careful hygiene. Seek medical attention immediately.",
+            "anemia": "Low red blood cell count. Often treated with iron supplements and dietary changes after a blood test.",
+            "arthritis": "Chronic joint inflammation. Managed through low-impact exercises and anti-inflammatory therapies.",
+            "thyroid": "Disorders causing metabolism issues. Requires professional evaluation via TSH blood tests and prescription medication.",
+            "covid": "Viral respiratory illness. Isolate and monitor oxygen levels. Seek emergency care for trouble breathing or persistent chest pain.",
+            "pneumonia": "A serious lung infection causing cough and fever. Requires professional diagnosis and often antibiotics.",
+            "hepatitis": "Inflammation of the liver. Avoid alcohol and seek specialist care for long-term management.",
+            "obesity": "Increases risk for many health issues. Focus on sustainable lifestyle changes involving nutrition and physical activity.",
+            "migraine": "Severe throbbing pain with light sensitivity. Rest in a dark room and use prescribed migraine medication.",
+            "osteoporosis": "Weakens bones. Support health with calcium, Vitamin D, and weight-bearing exercises.",
+            "eczema": "Causes dry, itchy skin. Hydrate skin frequently with thick, fragrance-free creams.",
+            "psoriasis": "Chronic autoimmune condition. Keep skin moisturized and manage stress levels.",
+            "kidney disease": "Affects blood filtration. Requires low-sodium diet and careful monitoring by a nephrologist.",
+            "heart disease": "Requires a heart-healthy diet, regular exercise, and strict adherence to specialist-prescribed medications.",
+
+            // Nutrition & Mental Health
+            "protein": "Essential for muscle repair. Sources include lean meats, beans, tofu, and dairy.",
+            "vitamin": "Essential micronutrients. A diverse diet of fruits and vegetables usually provides adequate amounts.",
+            "calcium": "Vital for bone health. Found in dairy, leafy greens, and fortified plant milks.",
+            "water": "Essential for all body functions. Aim for 8 glasses a day, more if active.",
+            "healthy diet": "A balance of lean protein, healthy fats, and complex carbohydrates with plenty of vegetables.",
+            "stress": "Chronic stress impacts health. Practice deep breathing, regular exercise, and set boundaries.",
+            "anxiety": "Can cause racing thoughts and rapid heartbeat. Grounding techniques and professional therapy are highly effective.",
+            "depression": "A medical condition causing persistent sadness. Please reach out to a doctor or a mental health professional.",
+            "insomnia": "Difficulty sleeping. Maintain a consistent schedule and avoid screens before bed.",
+
+            // First Aid
+            "burn": "For minor burns, run cool water over the area for 10 minutes. Do not use ice or butter.",
+            "cut": "Apply pressure to stop bleeding, clean with soap and water, and cover with a sterile bandage.",
+            "fracture": "Immobilize the area and seek medical attention immediately. Do not try to realign the bone.",
+            "choking": "Perform the Heimlich maneuver if the person cannot breathe or speak. Call 911.",
+            "emergency": "In any life-threatening situation, call your local emergency number (**108**) immediately.",
+            "cpr": "Push hard and fast in the center of the chest (100-120 bpm). Call **108** first.",
+
+            "default": "I'm not sure I understand that specific term. Could you describe your symptom using keywords like 'fever', 'asthma', or 'stress'? Remember, I am an AI assistant, not a doctor. In an emergency, call **108**."
+        };
+
+        const EMERGENCIES = ["heart attack", "stroke", "unconscious", "severe bleeding", "suicide", "overdose", "chest pain", "difficulty breathing"];
+        const SUGGESTIONS = ["Fever", "Anxiety", "Diabetes", "Chest Pain", "Healthy Diet", "CPR", "Burn", "Insomnia"];
+
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const messagesContainer = document.getElementById('messages-container');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const chatWindow = document.getElementById('chat-window');
+        const historyList = document.getElementById('chat-history-list');
+        const suggestionsBox = document.getElementById('suggestions');
+
+        let chatHistory = JSON.parse(localStorage.getItem('standalone_history')) || [];
+        
+        // Initialize
+        window.onload = () => {
+            renderHistory();
+            SUGGESTIONS.forEach(s => {
+                const btn = document.createElement('button');
+                btn.className = 'chip';
+                btn.innerText = s;
+                btn.onclick = () => sendQuickQuery(s);
+                suggestionsBox.appendChild(btn);
+            });
+        };
+
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            renderMessage('user', text);
+            userInput.value = '';
+            updateHistory(text);
+
+            typingIndicator.classList.remove('hidden');
+            chatWindow.scrollTo(0, chatWindow.scrollHeight);
+
+            setTimeout(() => {
+                typingIndicator.classList.add('hidden');
+                const response = getLocalResponse(text);
+                renderMessage('bot', response.text, response.isEmergency);
+            }, 600);
+        });
+
+        function getLocalResponse(query) {
+            const q = query.toLowerCase();
+            const isEmergency = EMERGENCIES.some(e => q.includes(e));
+            let responseText = "";
+            
+            if (isEmergency) responseText += "⚠️ **EMERGENCY WARNING:** Your symptoms may indicate a life-threatening condition. Please call **108** or your local emergency services immediately.\n\n";
+            
+            let found = Object.keys(MEDICAL_DATA).find(key => q.includes(key));
+            responseText += found ? MEDICAL_DATA[found] : MEDICAL_DATA.default;
+            
+            return { text: responseText, isEmergency };
+        }
+
+        function renderMessage(sender, text, isEmergency = false) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${sender}-message`;
+            
+            // Markdown bolding support
+            let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            msgDiv.innerHTML = `
+                <div class="avatar"><i class="fas fa-${sender === 'bot' ? 'robot' : 'user'}"></i></div>
+                <div class="content">
+                    <div class="${isEmergency ? 'emergency-alert' : ''}" id="text-target"></div>
+                    <div class="timestamp">${time}</div>
+                </div>
+            `;
+            messagesContainer.appendChild(msgDiv);
+            
+            const target = msgDiv.querySelector('#text-target');
+            if (sender === 'bot') {
+                typeWriter(formattedText, target);
+            } else {
+                target.innerHTML = formattedText;
+            }
+
+            chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+        }
+
+        function typeWriter(text, element) {
+            let i = 0;
+            element.innerHTML = "";
+            // Handle HTML tags in typewriter effect
+            element.innerHTML = text; 
+            chatWindow.scrollTo(0, chatWindow.scrollHeight);
+        }
+
+        function updateHistory(query) {
+            if (!chatHistory.includes(query)) {
+                chatHistory.unshift(query);
+                if (chatHistory.length > 10) chatHistory.pop();
+                localStorage.setItem('standalone_history', JSON.stringify(chatHistory));
+                renderHistory();
+            }
+        }
+
+        function renderHistory() {
+            historyList.innerHTML = '';
+            chatHistory.forEach(item => {
+                const div = document.createElement('div');
+                div.innerHTML = `<i class="far fa-comment-alt"></i> ${item}`;
+                div.onclick = () => sendQuickQuery(item);
+                historyList.appendChild(div);
+            });
+        }
+
+        window.sendQuickQuery = (query) => {
+            userInput.value = query;
+            chatForm.dispatchEvent(new Event('submit'));
+        };
+
+        window.clearChat = () => {
+            messagesContainer.innerHTML = '';
+            addMessage('bot', 'Chat cleared.');
+            localStorage.removeItem('standalone_history');
+            chatHistory = [];
+            renderHistory();
+        };
+
+        window.toggleTheme = () => {
+            const isDark = document.body.classList.toggle('dark-mode');
+            document.getElementById('theme-icon').className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+            document.getElementById('theme-text').innerText = isDark ? 'Light Mode' : 'Dark Mode';
+        };
+
+        document.getElementById('open-sidebar').onclick = () => document.getElementById('sidebar').style.transform = 'translateX(0)';
+        document.getElementById('close-sidebar').onclick = () => document.getElementById('sidebar').style.transform = 'translateX(-100%)';
+    </script>
+</body>
+</html>

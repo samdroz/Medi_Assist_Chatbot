@@ -1,0 +1,357 @@
+/* ─── CSS Variables / Theming ───────────────────────────────────────────────── */
+:root {
+    --bg-primary:    #ffffff;
+    --bg-secondary:  #f9fafb;
+    --sidebar-bg:    #202123;
+    --text-main:     #374151;
+    --text-muted:    #6b7280;
+    --accent-color:  #10a37f;
+    --border-color:  #e5e7eb;
+    --bot-msg-bg:    #f7f7f8;
+    --user-msg-bg:   #ffffff;
+    --glass-bg:      rgba(255, 255, 255, 0.8);
+    --shadow:        0 10px 25px -5px rgba(0, 0, 0, 0.1),
+                     0  8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+.dark-mode {
+    --bg-primary:   #343541;
+    --bg-secondary: #202123;
+    --text-main:    #ececf1;
+    --text-muted:   #c5c5d2;
+    --border-color: #4d4d4f;
+    --bot-msg-bg:   #444654;
+    --user-msg-bg:  #343541;
+    --shadow:       0 20px 25px -5px rgba(0, 0, 0, 0.3);
+    --glass-bg:     rgba(52, 53, 65, 0.8);
+}
+
+/* ─── Reset & Base ───────────────────────────────────────────────────────────── */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-main);
+    overflow: hidden;
+    transition: background-color 0.3s ease;
+}
+
+/* ─── Layout ─────────────────────────────────────────────────────────────────── */
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* ─── Sidebar ────────────────────────────────────────────────────────────────── */
+.sidebar {
+    width: 260px;
+    background-color: var(--sidebar-bg);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    transition: transform 0.3s ease;
+    z-index: 1000;
+}
+
+.sidebar-header {
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.logo i {
+    color: var(--accent-color);
+    font-size: 1.4rem;
+}
+
+.new-chat-btn {
+    background: transparent;
+    border: 1px solid #4d4d4f;
+    color: white;
+    padding: 12px;
+    border-radius: 6px;
+    text-align: left;
+    cursor: pointer;
+    margin: 10px 0;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.new-chat-btn:hover { background: #2b2c2f; }
+
+.history-label {
+    font-size: 0.75rem;
+    color: #8e8ea0;
+    padding: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.sidebar-content { flex-grow: 1; overflow-y: auto; }
+
+.history-list div {
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+}
+
+.history-list div:hover { background: #2b2c2f; }
+
+.sidebar-footer {
+    border-top: 1px solid #4d4d4f;
+    padding-top: 10px;
+}
+
+.footer-btn {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 6px;
+}
+
+.footer-btn:hover { background: #2b2c2f; }
+
+/* ─── Chat Area ──────────────────────────────────────────────────────────────── */
+.chat-area {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-primary);
+    position: relative;
+}
+
+.chat-header {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
+    background: var(--glass-bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-toggle {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    color: var(--text-main);
+    cursor: pointer;
+}
+
+.header-title { font-weight: 600; color: var(--text-main); }
+
+/* ─── Online Pulse Indicator ─────────────────────────────────────────────────── */
+.status-indicator {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.pulse {
+    width: 8px;
+    height: 8px;
+    background: #10a37f;
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%   { transform: scale(0.95); box-shadow: 0 0 0 0   rgba(16, 163, 127, 0.7); }
+    70%  { transform: scale(1);    box-shadow: 0 0 0 10px rgba(16, 163, 127, 0);   }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0   rgba(16, 163, 127, 0);   }
+}
+
+/* ─── Messages ───────────────────────────────────────────────────────────────── */
+.chat-window {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 20px 0;
+}
+
+.message {
+    padding: 25px 20px;
+    display: flex;
+    justify-content: center;
+    transition: background 0.3s;
+}
+
+.bot-message  { background-color: var(--bot-msg-bg); }
+.user-message { background-color: var(--user-msg-bg); border-bottom: 1px solid var(--border-color); }
+
+.message .avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20px;
+    flex-shrink: 0;
+}
+
+.bot-message  .avatar { background: var(--accent-color); color: white; }
+.user-message .avatar { background: #5436da;             color: white; }
+
+.message .content {
+    max-width: 800px;
+    width: 100%;
+    line-height: 1.7;
+    font-size: 1.05rem;
+    white-space: pre-wrap;
+    color: var(--text-main);
+}
+
+.message .timestamp {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 8px;
+}
+
+/* ─── Emergency Alert ────────────────────────────────────────────────────────── */
+.emergency-alert {
+    background: #fee2e2;
+    border: 2px solid #ef4444;
+    padding: 15px;
+    border-radius: 8px;
+    color: #b91c1c;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+/* ─── Input Area ─────────────────────────────────────────────────────────────── */
+.input-area {
+    padding: 20px;
+    background: linear-gradient(transparent, var(--bg-primary) 20%);
+}
+
+.suggestions-container {
+    max-width: 800px;
+    margin: 0 auto 15px;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+    scrollbar-width: none;
+}
+
+.suggestions-container::-webkit-scrollbar { display: none; }
+
+.chip {
+    padding: 8px 16px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chip:hover {
+    background: var(--bot-msg-bg);
+    border-color: var(--accent-color);
+    transform: translateY(-1px);
+}
+
+.input-wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    display: flex;
+    padding: 5px;
+}
+
+.input-wrapper input {
+    flex-grow: 1;
+    border: none;
+    padding: 12px 15px;
+    background: transparent;
+    color: var(--text-main);
+    font-size: 1rem;
+    outline: none;
+}
+
+.input-wrapper button {
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.input-wrapper button:hover { opacity: 0.85; }
+
+.footer-note {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 10px;
+}
+
+/* ─── Typing Indicator ───────────────────────────────────────────────────────── */
+.typing span {
+    height: 8px;
+    width: 8px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    display: inline-block;
+    margin: 0 2px;
+    animation: bounce 1.3s infinite;
+}
+
+.typing span:nth-child(2) { animation-delay: 0.15s; }
+.typing span:nth-child(3) { animation-delay: 0.30s; }
+
+@keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30%            { transform: translateY(-4px); }
+}
+
+/* ─── Utilities ──────────────────────────────────────────────────────────────── */
+.hidden { display: none; }

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediAssist AI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="light-mode">
+
+    <div class="app-container">
+
+        <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-hand-holding-medical"></i>
+                    <span>MediAssist AI</span>
+                </div>
+                <button id="close-sidebar" style="background:none; border:none; color:white; font-size:1.2rem;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <button class="new-chat-btn" onclick="clearChat()">
+                <i class="fas fa-plus"></i> New Chat
+            </button>
+
+            <div class="sidebar-content">
+                <div class="history-label">Recent History</div>
+                <div id="chat-history-list" class="history-list"></div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button onclick="toggleTheme()" class="footer-btn">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                    <span id="theme-text">Dark Mode</span>
+                </button>
+                <button class="footer-btn" onclick="alert('MediAssist AI v1.0')">
+                    <i class="fas fa-circle-info"></i> About
+                </button>
+            </div>
+        </aside>
+
+        <!-- ── Main Chat Area ────────────────────────────────────────────────── -->
+        <main class="chat-area">
+
+            <header class="chat-header">
+                <button id="open-sidebar" class="sidebar-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="header-title">MediAssist AI</div>
+                <div class="status-indicator">
+                    <span class="pulse"></span> Online
+                </div>
+            </header>
+
+            <div id="chat-window" class="chat-window">
+                <div id="messages-container">
+                    <div class="message bot-message">
+                        <div class="avatar"><i class="fas fa-robot"></i></div>
+                        <div class="content">Hello! I'm MediAssist AI. Ask me about symptoms, diseases, nutrition, or first aid.</div>
+                    </div>
+                </div>
+
+                <!-- Typing indicator -->
+                <div id="typing-indicator" class="message bot-message hidden">
+                    <div class="avatar"><i class="fas fa-robot"></i></div>
+                    <div class="content typing">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="input-area">
+                <div class="suggestions-container" id="suggestions"></div>
+
+                <form id="chat-form" class="input-wrapper">
+                    <input
+                        type="text"
+                        id="user-input"
+                        placeholder="Ask about symptoms, nutrition, or first aid..."
+                        autocomplete="off"
+                    >
+                    <button type="submit"><i class="fas fa-paper-plane"></i></button>
+                </form>
+
+                <p class="footer-note">
+                    ⚕️ MediAssist AI is for informational purposes only. Always consult a qualified doctor.
+                </p>
+            </footer>
+
+        </main>
+    </div>
+
+    <!-- ── JavaScript ──────────────────────────────────────────────────────────── -->
+    <script>
+        const SUGGESTIONS = ["Fever", "Anxiety", "Diabetes", "Chest Pain", "Healthy Diet", "CPR", "Burn", "Insomnia"];
+
+        const chatForm        = document.getElementById('chat-form');
+        const userInput       = document.getElementById('user-input');
+        const messagesContainer = document.getElementById('messages-container');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const chatWindow      = document.getElementById('chat-window');
+        const historyList     = document.getElementById('chat-history-list');
+        const suggestionsBox  = document.getElementById('suggestions');
+
+        let chatHistory = JSON.parse(localStorage.getItem('medi_history')) || [];
+
+        // ── Initialise ──────────────────────────────────────────────────────────
+        window.onload = () => {
+            renderHistory();
+            SUGGESTIONS.forEach(s => {
+                const btn = document.createElement('button');
+                btn.className = 'chip';
+                btn.innerText = s;
+                btn.onclick = () => sendQuickQuery(s);
+                suggestionsBox.appendChild(btn);
+            });
+        };
+
+        // ── Submit handler ──────────────────────────────────────────────────────
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            renderMessage('user', text);
+            userInput.value = '';
+            updateHistory(text);
+
+            // Show typing indicator
+            typingIndicator.classList.remove('hidden');
+            chatWindow.scrollTo(0, chatWindow.scrollHeight);
+
+            try {
+                // Call Flask backend
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+                const data = await res.json();
+                typingIndicator.classList.add('hidden');
+                renderMessage('bot', data.response, data.isEmergency);
+            } catch (err) {
+                typingIndicator.classList.add('hidden');
+                renderMessage('bot', '⚠️ Could not reach the server. Please make sure the Flask app is running.');
+            }
+        });
+
+        // ── Render a message bubble ─────────────────────────────────────────────
+        function renderMessage(sender, text, isEmergency = false) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${sender}-message`;
+
+            const formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            msgDiv.innerHTML = `
+                <div class="avatar">
+                    <i class="fas fa-${sender === 'bot' ? 'robot' : 'user'}"></i>
+                </div>
+                <div class="content">
+                    <div class="${isEmergency ? 'emergency-alert' : ''}">${formattedText}</div>
+                    <div class="timestamp">${time}</div>
+                </div>
+            `;
+
+            messagesContainer.appendChild(msgDiv);
+            chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+        }
+
+        // ── Chat history (localStorage) ─────────────────────────────────────────
+        function updateHistory(query) {
+            if (!chatHistory.includes(query)) {
+                chatHistory.unshift(query);
+                if (chatHistory.length > 10) chatHistory.pop();
+                localStorage.setItem('medi_history', JSON.stringify(chatHistory));
+                renderHistory();
+            }
+        }
+
+        function renderHistory() {
+            historyList.innerHTML = '';
+            chatHistory.forEach(item => {
+                const div = document.createElement('div');
+                div.innerHTML = `<i class="far fa-comment-alt"></i> ${item}`;
+                div.onclick = () => sendQuickQuery(item);
+                historyList.appendChild(div);
+            });
+        }
+
+        // ── Helpers ─────────────────────────────────────────────────────────────
+        window.sendQuickQuery = (query) => {
+            userInput.value = query;
+            chatForm.dispatchEvent(new Event('submit'));
+        };
+
+        window.clearChat = () => {
+            messagesContainer.innerHTML = '';
+            renderMessage('bot', 'Chat cleared. How can I help you?');
+            localStorage.removeItem('medi_history');
+            chatHistory = [];
+            renderHistory();
+        };
+
+        window.toggleTheme = () => {
+            const isDark = document.body.classList.toggle('dark-mode');
+            document.getElementById('theme-icon').className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+            document.getElementById('theme-text').innerText  = isDark ? 'Light Mode' : 'Dark Mode';
+        };
+
+        document.getElementById('open-sidebar').onclick  = () => document.getElementById('sidebar').style.transform = 'translateX(0)';
+        document.getElementById('close-sidebar').onclick = () => document.getElementById('sidebar').style.transform = 'translateX(-100%)';
+    </script>
+
+</body>
+</html>

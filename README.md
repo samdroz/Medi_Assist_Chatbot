@@ -38,7 +38,7 @@ mediassist-ai/
 
 **1. Clone the repo**
 ```bash
-git clone https://github.com/YOUR_USERNAME/mediassist-ai.git
+git clone https://github.com/samdroz/mediassist-ai.git
 cd mediassist-ai
 ```
 
